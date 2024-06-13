@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode } from "jwt-decode";  // Correct import for named export
 import Card from "@mui/material/Card";
 import Switch from "@mui/material/Switch";
 import Grid from "@mui/material/Grid";
@@ -13,15 +13,16 @@ import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDInput from "components/MDInput";
 import MDButton from "components/MDButton";
+import MDAlert from "components/MDAlert";  // Import MDAlert
 import BasicLayout from "layouts/authentication/components/BasicLayout";
 import bgImage from "assets/images/bg-sign-in-basic.jpeg";
 
 function SignInSide() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [alert, setAlert] = useState({ open: false, message: "", color: "error" });  // Alert state
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,7 +62,7 @@ function SignInSide() {
       }
     } catch (error) {
       console.error("Login failed:", error);
-      setOpen(true);
+      setAlert({ open: true, message: "Invalid username or password", color: "error" });  // Show alert
     } finally {
       setLoading(false);
     }
@@ -69,9 +70,27 @@ function SignInSide() {
 
   const handleSetRememberMe = () => setRememberMe(!rememberMe);
 
+  const closeAlert = () => setAlert({ ...alert, open: false });
+
   return (
     <BasicLayout image={bgImage}>
       <Card>
+        {alert.open && (
+          <MDBox
+            position="absolute"
+            top="10%"
+            left="50%"
+            style={{ transform: "translate(-50%, -50%)", width: "auto", minWidth: "300px" }}
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            zIndex={10}
+          >
+            <MDAlert color={alert.color} dismissible onClose={closeAlert} style={{ width: "100%", textAlign: "center" }}>
+              {alert.message}
+            </MDAlert>
+          </MDBox>
+        )}
         <MDBox
           variant="gradient"
           bgColor="info"

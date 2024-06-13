@@ -22,10 +22,7 @@ import zxcvbn from "zxcvbn";
 // @mui material components
 import Card from "@mui/material/Card";
 import Checkbox from "@mui/material/Checkbox";
-import { Select, MenuItem } from '@mui/material';
-import Snackbar from '@mui/material/Snackbar';
-import Grid from '@mui/material/Grid';
-
+import { Select, MenuItem, Snackbar, Grid, Box, LinearProgress } from '@mui/material';
 
 // Material Dashboard 2 React components
 import MDBox from "components/MDBox";
@@ -62,6 +59,7 @@ const SignUp = () => {
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('error');
   const [passwordStrength, setPasswordStrength] = useState(null);
+  const [passwordTouched, setPasswordTouched] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -72,22 +70,44 @@ const SignUp = () => {
     }));
 
     if (name === 'password') {
-      const strength = zxcvbn(value);
-      setPasswordStrength(strength.score);
+      setPasswordTouched(true);
+      const strength = zxcvbn(value).score;
+      setPasswordStrength(getPasswordStrength(value));
     }
+  };
+
+  const getPasswordStrength = (password) => {
+    if (/^[a-zA-Z]+$/.test(password)) {
+      return 0; // Weak
+    } else if (/^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]+$/.test(password)) {
+      return 1; // Average
+    } else if (/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[\W_])[a-zA-Z0-9\W_]+$/.test(password)) {
+      return 2; // Strong
+    }
+    return 0; // Default to Weak
   };
 
   const getPasswordStrengthLabel = (score) => {
     switch (score) {
       case 0:
-      case 1:
         return 'Weak';
-      case 2:
+      case 1:
         return 'Average';
-      case 3:
+      case 2:
         return 'Strong';
-      case 4:
-        return 'Very Strong';
+      default:
+        return '';
+    }
+  };
+
+  const getPasswordStrengthColor = (score) => {
+    switch (score) {
+      case 0:
+        return 'red';
+      case 1:
+        return 'yellow';
+      case 2:
+        return 'green';
       default:
         return '';
     }
@@ -96,8 +116,7 @@ const SignUp = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const { firstName, lastName, username, email, phone, password, confirmPassword, country } =
-      form;
+    const { firstName, lastName, username, email, phone, password, confirmPassword, country } = form;
 
     if (
       !firstName ||
@@ -126,8 +145,14 @@ const SignUp = () => {
       return;
     }
 
-    if (passwordStrength < 2) {
+    if (passwordStrength < 1) {
       setAlertMessage('Password is too weak');
+      setOpen(true);
+      return;
+    }
+
+    if (!/^\d{9}$/.test(phone)) {
+      setAlertMessage('Phone number must be 9 digits');
       setOpen(true);
       return;
     }
@@ -243,17 +268,16 @@ const SignUp = () => {
                 </MDBox>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <MDBox mb={2}>
+                <MDBox mb={2} display="flex" alignItems="center">
                   <Select
-                    label='Country'
                     name='country'
                     variant='standard'
                     required
                     value={form.country}
                     onChange={handleChange}
-                    fullWidth
                     id='country-label'
                     labelId='country-label'
+                    sx={{ marginRight: 2 }}
                   >
                     {countries.map((country) => (
                       <MenuItem key={country.code} value={country.dial_code}>
@@ -261,10 +285,6 @@ const SignUp = () => {
                       </MenuItem>
                     ))}
                   </Select>
-                </MDBox>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <MDBox mb={2}>
                   <MDInput
                     type='text'
                     label='Phone Number'
@@ -274,6 +294,7 @@ const SignUp = () => {
                     value={form.phone}
                     onChange={handleChange}
                     fullWidth
+                    inputProps={{ maxLength: 9 }}
                   />
                 </MDBox>
               </Grid>
@@ -286,13 +307,21 @@ const SignUp = () => {
                     variant='standard'
                     value={form.password}
                     onChange={handleChange}
-                    helperText={
-                      passwordStrength !== null
-                        ? `Password Strength: ${getPasswordStrengthLabel(passwordStrength)}`
-                        : ''
-                    }
+                    onFocus={() => setPasswordTouched(true)}
                     fullWidth
                   />
+                  {passwordTouched && (
+                    <Box mt={1}>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={(passwordStrength + 1) * 50} 
+                        sx={{ backgroundColor: 'lightgrey', "& .MuiLinearProgress-bar": { backgroundColor: getPasswordStrengthColor(passwordStrength) } }}
+                      />
+                      <MDTypography variant="caption" color={getPasswordStrengthColor(passwordStrength)}>
+                        Password Strength: {getPasswordStrengthLabel(passwordStrength)}
+                      </MDTypography>
+                    </Box>
+                  )}
                 </MDBox>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -302,6 +331,7 @@ const SignUp = () => {
                     label='Confirm Password'
                     name='confirmPassword'
                     variant='standard'
+                    required
                     value={form.confirmPassword}
                     onChange={handleChange}
                     fullWidth
@@ -310,14 +340,14 @@ const SignUp = () => {
               </Grid>
               <Grid item xs={12}>
                 <MDBox display='flex' alignItems='center' ml={-1}>
-                  <Checkbox />
+                  <Checkbox required />
                   <MDTypography
                     variant='button'
                     fontWeight='regular'
                     color='text'
                     sx={{ cursor: 'pointer', userSelect: 'none', ml: -1 }}
                   >
-                    &nbsp;&nbsp;I agree the&nbsp;
+                    &nbsp;&nbsp;I agree to the&nbsp;
                   </MDTypography>
                   <MDTypography
                     component='a'
@@ -334,23 +364,23 @@ const SignUp = () => {
             </Grid>
             <MDBox mt={4} mb={1}>
               <MDButton type='submit' variant='gradient' color='info' fullWidth>
-                sign in
+                Sign Up
               </MDButton>
             </MDBox>
             <MDBox mt={3} mb={1} textAlign='center'>
               <MDTypography variant='button' color='text'>
-                  Already have an account?{' '}
-                  <MDTypography
-                    component={Link}
-                    to='/authentication/sign-in'
-                    variant='button'
-                    color='info'
-                    fontWeight='medium'
-                    textGradient
-                  >
-                    Sign In
-                  </MDTypography>
+                Already have an account?{' '}
+                <MDTypography
+                  component={Link}
+                  to='/authentication/sign-in'
+                  variant='button'
+                  color='info'
+                  fontWeight='medium'
+                  textGradient
+                >
+                  Sign In
                 </MDTypography>
+              </MDTypography>
             </MDBox>
           </MDBox>
         </MDBox>
@@ -370,3 +400,4 @@ const SignUp = () => {
 };
 
 export default SignUp;
+
